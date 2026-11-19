@@ -1,0 +1,334 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection probe endpoint
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // =========================================================================
+    // Primitive Helpers
+    // =========================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerified() && (
+        request.auth.token.email == 'rakshasr25bcg045@skasc.ac.in' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // =========================================================================
+    // Validation Blueprints
+    // =========================================================================
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'email', 'displayName', 'role', 'organization',
+          'urgentRoutingEnabled', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'role', 'organization',
+          'urgentRoutingEnabled', 'createdAt', 'updatedAt'
+        ]) &&
+        data.uid is string && data.uid == userId && isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120 &&
+        data.role in ['customer', 'staff', 'admin'] &&
+        data.organization is string && data.organization.size() <= 120 &&
+        data.urgentRoutingEnabled is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTicket(data) {
+      return data.keys().hasAll([
+          'workspaceOwnerId', 'ticketNumber', 'title', 'description', 'category',
+          'severity', 'status', 'customerName', 'organization', 'clusterName',
+          'assignedStaffId', 'assignedStaffName', 'aiConfidence', 'predictedRootCause',
+          'recommendedRunbook', 'routingDestination', 'attachmentName',
+          'slaMinutesRemaining', 'stageIndex', 'internalNotes', 'customerSummary',
+          'rootCauseClass', 'remediationMethod', 'transitionReason', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'workspaceOwnerId', 'ticketNumber', 'title', 'description', 'category',
+          'severity', 'status', 'customerName', 'organization', 'clusterName',
+          'assignedStaffId', 'assignedStaffName', 'aiConfidence', 'predictedRootCause',
+          'recommendedRunbook', 'routingDestination', 'attachmentName',
+          'slaMinutesRemaining', 'stageIndex', 'internalNotes', 'customerSummary',
+          'rootCauseClass', 'remediationMethod', 'transitionReason', 'createdAt', 'updatedAt'
+        ]) &&
+        data.workspaceOwnerId is string && isValidId(data.workspaceOwnerId) &&
+        data.ticketNumber is string && data.ticketNumber.size() >= 3 && data.ticketNumber.size() <= 24 &&
+        data.ticketNumber.matches('^#[A-Z0-9\\-]+$') &&
+        data.title is string && data.title.size() >= 3 && data.title.size() <= 200 &&
+        data.description is string && data.description.size() >= 3 && data.description.size() <= 4000 &&
+        data.category in ['Billing & Invoices', 'API Integration', 'Account Access', 'Bug Report'] &&
+        data.severity in ['Low', 'Medium', 'High', 'Critical P1'] &&
+        data.status in [
+          'Open / Triage', 'In Progress', 'Waiting on Customer',
+          'Escalate Tier-3', 'Pending Verification', 'Resolved & Closed'
+        ] &&
+        data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120 &&
+        data.organization is string && data.organization.size() >= 1 && data.organization.size() <= 120 &&
+        data.clusterName is string && data.clusterName.size() >= 1 && data.clusterName.size() <= 120 &&
+        data.assignedStaffId is string && data.assignedStaffId.size() <= 128 &&
+        data.assignedStaffName is string && data.assignedStaffName.size() <= 120 &&
+        data.aiConfidence is number && data.aiConfidence >= 0 && data.aiConfidence <= 100 &&
+        data.predictedRootCause is string && data.predictedRootCause.size() <= 600 &&
+        data.recommendedRunbook is string && data.recommendedRunbook.size() <= 160 &&
+        data.routingDestination is string && data.routingDestination.size() <= 160 &&
+        data.attachmentName is string && data.attachmentName.size() <= 200 &&
+        data.slaMinutesRemaining is number && data.slaMinutesRemaining >= 0 && data.slaMinutesRemaining <= 10080 &&
+        data.stageIndex is number && data.stageIndex >= 1 && data.stageIndex <= 4 &&
+        data.internalNotes is string && data.internalNotes.size() <= 2000 &&
+        data.customerSummary is string && data.customerSummary.size() <= 2000 &&
+        data.rootCauseClass is string && data.rootCauseClass.size() <= 200 &&
+        data.remediationMethod is string && data.remediationMethod.size() <= 200 &&
+        data.transitionReason is string && data.transitionReason.size() <= 500 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTicketMessage(data, ticketId) {
+      return data.keys().hasAll([
+          'workspaceOwnerId', 'ticketId', 'senderRole', 'senderName',
+          'body', 'isInternalNote', 'runbookId', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'workspaceOwnerId', 'ticketId', 'senderRole', 'senderName',
+          'body', 'isInternalNote', 'runbookId', 'createdAt'
+        ]) &&
+        data.workspaceOwnerId is string && isValidId(data.workspaceOwnerId) &&
+        data.ticketId is string && data.ticketId == ticketId && isValidId(data.ticketId) &&
+        data.senderRole in ['customer', 'staff', 'ai'] &&
+        data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 120 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 2500 &&
+        data.isInternalNote is bool &&
+        data.runbookId is string && data.runbookId.size() <= 80 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidSpecialist(data) {
+      return data.keys().hasAll([
+          'workspaceOwnerId', 'name', 'title', 'teamTag', 'activeCount',
+          'resolvedCount', 'loadPercent', 'avgMttrMinutes', 'csatScore',
+          'isCopilotPick', 'avatarKey', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'workspaceOwnerId', 'name', 'title', 'teamTag', 'activeCount',
+          'resolvedCount', 'loadPercent', 'avgMttrMinutes', 'csatScore',
+          'isCopilotPick', 'avatarKey', 'updatedAt'
+        ]) &&
+        data.workspaceOwnerId is string && isValidId(data.workspaceOwnerId) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.teamTag is string && data.teamTag.size() >= 1 && data.teamTag.size() <= 40 &&
+        data.activeCount is number && data.activeCount >= 0 && data.activeCount <= 500 &&
+        data.resolvedCount is number && data.resolvedCount >= 0 && data.resolvedCount <= 10000 &&
+        data.loadPercent is number && data.loadPercent >= 0 && data.loadPercent <= 100 &&
+        data.avgMttrMinutes is number && data.avgMttrMinutes >= 0 && data.avgMttrMinutes <= 1440 &&
+        data.csatScore is number && data.csatScore >= 0 && data.csatScore <= 100 &&
+        data.isCopilotPick is bool &&
+        data.avatarKey in ['sarah', 'marcus', 'elena'] &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll([
+          'workspaceOwnerId', 'kind', 'title', 'summary',
+          'ticketId', 'ticketNumber', 'read', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'workspaceOwnerId', 'kind', 'title', 'summary',
+          'ticketId', 'ticketNumber', 'read', 'createdAt'
+        ]) &&
+        data.workspaceOwnerId is string && isValidId(data.workspaceOwnerId) &&
+        data.kind in ['Urgent P1', 'AI Updates', 'SLA'] &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+        data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 600 &&
+        data.ticketId is string && data.ticketId.size() <= 128 &&
+        data.ticketNumber is string && data.ticketNumber.size() <= 24 &&
+        data.read is bool &&
+        data.createdAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collection Rules
+    // =========================================================================
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(adminId);
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerified() && isValidId(userId) && isOwner(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (incoming().role == 'customer' || isAdmin());
+      allow update: if isVerified() && isValidId(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            isOwner(userId) &&
+            incoming().role == existing().role &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName', 'organization', 'urgentRoutingEnabled', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    match /tickets/{ticketId} {
+      allow get: if isSignedIn() && isValidId(ticketId) && (
+        existing().workspaceOwnerId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && resource.data.workspaceOwnerId == request.auth.uid;
+      allow create: if isVerified() && isValidId(ticketId) &&
+        isValidTicket(incoming()) &&
+        incoming().workspaceOwnerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(ticketId) &&
+        isValidTicket(incoming()) &&
+        incoming().workspaceOwnerId == existing().workspaceOwnerId &&
+        incoming().ticketNumber == existing().ticketNumber &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().workspaceOwnerId == request.auth.uid &&
+            (
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'assignedStaffId', 'assignedStaffName', 'routingDestination', 'updatedAt'
+              ]) ||
+              (
+                existing().status != 'Resolved & Closed' &&
+                incoming().diff(existing()).affectedKeys().hasOnly([
+                  'status', 'stageIndex', 'transitionReason', 'updatedAt'
+                ])
+              ) ||
+              (
+                existing().status != 'Resolved & Closed' &&
+                incoming().status == 'Resolved & Closed' &&
+                incoming().diff(existing()).affectedKeys().hasOnly([
+                  'status', 'stageIndex', 'internalNotes', 'customerSummary',
+                  'rootCauseClass', 'remediationMethod', 'updatedAt'
+                ])
+              ) ||
+              (
+                existing().status == 'Resolved & Closed' &&
+                incoming().status == 'Open / Triage' &&
+                incoming().diff(existing()).affectedKeys().hasOnly([
+                  'status', 'stageIndex', 'transitionReason', 'updatedAt'
+                ])
+              )
+            )
+          )
+        );
+      allow delete: if isVerified() && isValidId(ticketId) && (
+        existing().workspaceOwnerId == request.auth.uid || isAdmin()
+      );
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(ticketId) && isValidId(messageId) &&
+          get(/databases/$(database)/documents/tickets/$(ticketId)).data.workspaceOwnerId == request.auth.uid;
+        allow list: if isSignedIn() && resource.data.workspaceOwnerId == request.auth.uid;
+        allow create: if isVerified() && isValidId(ticketId) && isValidId(messageId) &&
+          isValidTicketMessage(incoming(), ticketId) &&
+          incoming().workspaceOwnerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          exists(/databases/$(database)/documents/tickets/$(ticketId)) &&
+          get(/databases/$(database)/documents/tickets/$(ticketId)).data.workspaceOwnerId == request.auth.uid;
+        allow update, delete: if isAdmin() && isValidId(ticketId) && isValidId(messageId);
+      }
+    }
+
+    match /specialists/{specialistId} {
+      allow get: if isSignedIn() && isValidId(specialistId) && (
+        existing().workspaceOwnerId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && resource.data.workspaceOwnerId == request.auth.uid;
+      allow create: if isVerified() && isValidId(specialistId) &&
+        isValidSpecialist(incoming()) &&
+        incoming().workspaceOwnerId == request.auth.uid &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(specialistId) &&
+        isValidSpecialist(incoming()) &&
+        incoming().workspaceOwnerId == existing().workspaceOwnerId &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().workspaceOwnerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'activeCount', 'resolvedCount', 'loadPercent', 'isCopilotPick', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(specialistId);
+    }
+
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && isValidId(notificationId) && (
+        existing().workspaceOwnerId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && resource.data.workspaceOwnerId == request.auth.uid;
+      allow create: if isVerified() && isValidId(notificationId) &&
+        isValidNotification(incoming()) &&
+        incoming().workspaceOwnerId == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update: if isVerified() && isValidId(notificationId) &&
+        isValidNotification(incoming()) &&
+        incoming().workspaceOwnerId == existing().workspaceOwnerId &&
+        incoming().createdAt == existing().createdAt &&
+        (
+          isAdmin() ||
+          (
+            existing().workspaceOwnerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+          )
+        );
+      allow delete: if isVerified() && isValidId(notificationId) && (
+        existing().workspaceOwnerId == request.auth.uid || isAdmin()
+      );
+    }
+  }
+}

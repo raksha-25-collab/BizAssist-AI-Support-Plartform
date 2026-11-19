@@ -1,0 +1,417 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private authenticated user profile and portal preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer", "staff", "admin"]
+        },
+        "organization": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "urgentRoutingEnabled": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "role", "organization", "urgentRoutingEnabled", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted administrator authorization record.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "grantedAt"]
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "description": "Enterprise support incident or customer inquiry.",
+      "type": "object",
+      "properties": {
+        "workspaceOwnerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ticketNumber": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 24,
+          "pattern": "^#[A-Z0-9\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 4000
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Billing & Invoices", "API Integration", "Account Access", "Bug Report"]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["Low", "Medium", "High", "Critical P1"]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Open / Triage",
+            "In Progress",
+            "Waiting on Customer",
+            "Escalate Tier-3",
+            "Pending Verification",
+            "Resolved & Closed"
+          ]
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "organization": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "clusterName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "assignedStaffId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "assignedStaffName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "aiConfidence": {
+          "type": "number"
+        },
+        "predictedRootCause": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "recommendedRunbook": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "routingDestination": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "attachmentName": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "slaMinutesRemaining": {
+          "type": "number"
+        },
+        "stageIndex": {
+          "type": "number"
+        },
+        "internalNotes": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "customerSummary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "rootCauseClass": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "remediationMethod": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "transitionReason": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "workspaceOwnerId",
+        "ticketNumber",
+        "title",
+        "description",
+        "category",
+        "severity",
+        "status",
+        "customerName",
+        "organization",
+        "clusterName",
+        "assignedStaffId",
+        "assignedStaffName",
+        "aiConfidence",
+        "predictedRootCause",
+        "recommendedRunbook",
+        "routingDestination",
+        "attachmentName",
+        "slaMinutesRemaining",
+        "stageIndex",
+        "internalNotes",
+        "customerSummary",
+        "rootCauseClass",
+        "remediationMethod",
+        "transitionReason",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TicketMessage": {
+      "title": "TicketMessage",
+      "description": "Message inside a support ticket conversation thread.",
+      "type": "object",
+      "properties": {
+        "workspaceOwnerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ticketId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderRole": {
+          "type": "string",
+          "enum": ["customer", "staff", "ai"]
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2500
+        },
+        "isInternalNote": {
+          "type": "boolean"
+        },
+        "runbookId": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "workspaceOwnerId",
+        "ticketId",
+        "senderRole",
+        "senderName",
+        "body",
+        "isInternalNote",
+        "runbookId",
+        "createdAt"
+      ]
+    },
+    "Specialist": {
+      "title": "Specialist",
+      "description": "On-call support specialist workload and telemetry record.",
+      "type": "object",
+      "properties": {
+        "workspaceOwnerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "teamTag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "activeCount": {
+          "type": "number"
+        },
+        "resolvedCount": {
+          "type": "number"
+        },
+        "loadPercent": {
+          "type": "number"
+        },
+        "avgMttrMinutes": {
+          "type": "number"
+        },
+        "csatScore": {
+          "type": "number"
+        },
+        "isCopilotPick": {
+          "type": "boolean"
+        },
+        "avatarKey": {
+          "type": "string",
+          "enum": ["sarah", "marcus", "elena"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "workspaceOwnerId",
+        "name",
+        "title",
+        "teamTag",
+        "activeCount",
+        "resolvedCount",
+        "loadPercent",
+        "avgMttrMinutes",
+        "csatScore",
+        "isCopilotPick",
+        "avatarKey",
+        "updatedAt"
+      ]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Real-time alert, SLA milestone, or AI update.",
+      "type": "object",
+      "properties": {
+        "workspaceOwnerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["Urgent P1", "AI Updates", "SLA"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "ticketId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "ticketNumber": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "read": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "workspaceOwnerId",
+        "kind",
+        "title",
+        "summary",
+        "ticketId",
+        "ticketNumber",
+        "read",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profiles isolated to the authenticated user or admin."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Administrator registry for elevated governance access."
+    },
+    "/tickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/Ticket" },
+      "description": "Support tickets and real-time triage workflows scoped to workspaceOwnerId."
+    },
+    "/tickets/{ticketId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/TicketMessage" },
+      "description": "Ticket conversation messages and AI handover logs."
+    },
+    "/specialists/{specialistId}": {
+      "schema": { "$ref": "#/entities/Specialist" },
+      "description": "Specialist pool availability and shift telemetry scoped to workspaceOwnerId."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Real-time SLA and escalation notifications scoped to workspaceOwnerId."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "BizAssist AI Support Platform",
+  "description": "Enterprise AI-powered customer support, specialist triage workspace, and operations command center with real-time Gemini diagnostics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
